@@ -1,3 +1,2 @@
-# pls20iitk-Information-Retrival-Pipeline-with-knowledgeGraph
-
-Welcome to the Information-Retrival-Pipeline-with-knowledgeGraph  project repository, where we are exploring and demonstrating the synergies between Neo4j and Large Language Models (LLMs). As a part of our ongoing project, I am focusing on three primary use cases - a Natural Language Interface to a Knowledge Graph, Creating a Knowledge Graph from Unstructured Data and Generate a Report using both static data and data from LLM.This repository houses both backend and frontend code, designed and organized to facilitate an intuitive journey through our project.
+# legalgraph
+This repository is created to extract information from legal document using Knowledge graph, vectorDB, LLM GPT-3, 3.5,4 and LangChain 

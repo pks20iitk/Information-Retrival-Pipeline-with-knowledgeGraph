@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+<<<<<<< HEAD
+      <module fileurl="file://$PROJECT_DIR$/.idea/KnowledgGraph.iml" filepath="$PROJECT_DIR$/.idea/KnowledgGraph.iml" />
+=======
+      <module fileurl="file://$PROJECT_DIR$/.idea/knowledgegraph.iml" filepath="$PROJECT_DIR$/.idea/knowledgegraph.iml" />
+>>>>>>> 366b09bd565d4ae5e488fd699fd4ab7ad9577f15
+    </modules>
+  </component>
+</project>
