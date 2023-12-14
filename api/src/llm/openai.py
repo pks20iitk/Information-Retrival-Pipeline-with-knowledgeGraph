@@ -1,3 +1,4 @@
+import secrets
 from typing import Callable, List
 
 import openai
@@ -12,18 +13,34 @@ class LLMException(Exception):
 
 class TokenGenerator:
     @staticmethod
-    def raise_exception(ex):
-        raise ex
+    def generate_token():
+        """
+        Generates a secure token using a secure random number generator.
+        """
+        return secrets.token_hex(16)
+
+    @staticmethod
+    def validate_token(token):
+        """
+        Validates the given token.
+        """
+        # code for validating token
+
+    def invalidate_token(self, token):
+        """
+        Invalidates the given token.
+        """
+        # code to invalidate the token
 
 
 class OpenAIChat(BaseLLM):
     """Wrapper around OpenAI Chat large language models."""
 
     def __init__(
-        self,
-            openai_api_key: str,
+            self,
+            openai_api_key: str = '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',
             model_name: str = "gpt-3.5-turbo",
-            max_tokens: int = 1000,
+            max_tokens: int = 3000,
             temperature: float = 0.0,
     ) -> None:
         openai.api_key = openai_api_key
@@ -32,7 +49,7 @@ class OpenAIChat(BaseLLM):
         self.temperature = temperature
 
     @retry(tries=3, delay=1)
-    def generate(self, messages: List[str]) -> str:
+    def generate(self, messages):
         try:
             completions = openai.ChatCompletion.create(
                 model=self.model,
@@ -42,20 +59,16 @@ class OpenAIChat(BaseLLM):
             )
             return completions.choices[0].message.content
         except openai.error.InvalidRequestError as e:
-            TokenGenerator.raise_exception(
-                LLMException(f"Error: {e}")
-            )
+            raise LLMException(f"Error: {e}")
         except openai.error.AuthenticationError as e:
-            TokenGenerator.raise_exception(
-                LLMException("Error: The provided OpenAI api key is invalid")
-            )
-        except Exception as e:
-            TokenGenerator.raise_exception(LLMException(f"Retrying LLM call {e}"))
+            raise LLMException("Error: The provided OpenAI api key is invalid")
+        except openai.error.APIError as e:
+            raise LLMException(f"Retrying LLM call {e}")
 
     async def generate_streaming(
-        self,
-        messages: List[str],
-        on_token_callback: Callable[[str], None],
+            self,
+            messages: List[str],
+            on_token_callback: Callable[[str], None],
     ) -> List[str]:
         result = []
         try:
@@ -72,8 +85,8 @@ class OpenAIChat(BaseLLM):
                     result.append(delta["content"])
                 await on_token_callback(message)
             return result
-        except Exception as e:
-            TokenGenerator.raise_exception(LLMException(f"Retrying LLM call {e}"))
+        except openai.error.APIError as e:
+            raise LLMException(f"Retrying LLM call {e}")
 
     def num_tokens_from_string(self, string: str) -> int:
         encoding = tiktoken.encoding_for_model(self.model)

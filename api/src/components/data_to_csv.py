@@ -1,39 +1,46 @@
-from typing import List
-
+from typing import List, Union
 from api.src.components.base_components import BaseComponent
-
-
-class SystemMessageGenerator:
-    @staticmethod
-    def generate_system_message() -> str:
-        return """
-You will be given a dataset of nodes and relationships. Your task is to convert this data into a CSV format.
-Return only the data in the CSV format and nothing else. Return a CSV file for every type of node and relationship.
-The data you will be given is in the form [ENTITY, TYPE, PROPERTIES] and a set of relationships in the form [ENTITY1, RELATIONSHIP, ENTITY2, PROPERTIES].
-Important: If you don't get any data or data that does not follow the previously mentioned format return "No data" and nothing else. This is very important. If you don't follow this instruction you will get a 0.
-"""
-
-
-class PromptGenerator:
-    @staticmethod
-    def generate_prompt(data) -> str:
-        return f""" Here is the data:
-{data}
-"""
+from api.src.components.message_generator import SystemMessageGenerator, PromptGenerator
+from api.src.llm.openai import OpenAIChat
 
 
 class DataToCSV(BaseComponent):
-    def __init__(self, llm) -> None:
-        self.llm = llm
+    def __init__(self, csv_generator, runner: None) -> None:
+        super().__init__(runner)
+        self.csv_generator = csv_generator
 
-    def run(self, data: List[str]) -> str:
-        system_message = SystemMessageGenerator.generate_system_message()
-        prompt = PromptGenerator.generate_prompt(data)
+    def execute(self, input_data: Union[str, List[float]]) -> str:
+        try:
+            if not input_data or not isinstance(input_data, list):
+                return "No data"
+            system_message = SystemMessageGenerator.system_message()
+            prompt = PromptGenerator.generate_prompt(input_data)
 
-        messages = [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": prompt},
-        ]
+            messages = [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt},
+            ]
 
-        output = self.llm.generate(messages)
-        return output
+            csv_data = self.csv_generator.generate(messages)
+            return csv_data
+        except Exception as e:
+            return "No data"
+
+
+if __name__ == "__main__":
+    # Example input data (replace with your actual data)
+    example_input_data = ["item1", "item2", "item3"]
+
+    # Example CSV generator (replace with your actual implementation)
+
+    example_csv_generator = OpenAIChat(openai_api_key='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')
+
+    # Example DataToCSV usage
+    data_to_csv = DataToCSV(csv_generator=example_csv_generator, runner=None)
+    result_csv_data = data_to_csv.execute(example_input_data)
+
+    # Print the result
+    print("Input Data:")
+    print(example_input_data)
+    print("\nResult CSV Data:")
+    print(result_csv_data)

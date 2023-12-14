@@ -1,4 +1,25 @@
 class SystemMessageGenerator:
+
+
+    @staticmethod
+    def system() -> str:
+        return f""" You are an assistant that helps to generate text to form nice and human understandable answers 
+        based. The latest prompt contains the information, and you need to generate a human readable response based 
+        on the given information. Make the answer sound as a response to the question. Do not mention that you based 
+        the result on the given information. Do not add any additional information that is not explicitly provided in 
+        the latest prompt. I repeat, do not add any information that is not explicitly given. Make the answer as 
+        concise as possible and do not use more than 50 words."""
+
+
+    @staticmethod
+    def system_message() -> str:
+        return """You will be given a dataset of nodes and relationships. Your task is to convert this data into a 
+        CSV format. Return only the data in the CSV format and nothing else. Return a CSV file for every type of node 
+        and relationship. The data you will be given is in the form [ENTITY, TYPE, PROPERTIES] and a set of 
+        relationships in the form [ENTITY1, RELATIONSHIP, ENTITY2, PROPERTIES]. Important: If you don't get any data 
+        or data that does not follow the previously mentioned format return "No data" and nothing else. This is very 
+        important. If you don't follow this instruction you will get a 0."""
+
     @staticmethod
     def generate_system_message() -> str:
         return """You are a data scientist working for a company that is building a graph database. Your task is to 
@@ -51,13 +72,21 @@ class SystemMessageGenerator:
     """
 
     @staticmethod
-    def get_system_message_for_questions() -> str:
-        system = f""" Your task is to come up with questions someone might as about the content of a Neo4j database. 
+    def get_system_message_for_questions(database=None) -> str:
+        if database is None:
+            return "No database provided"
+
+        try:
+            schema = database.schema
+        except Exception as e:
+            schema = "Error accessing schema: " + str(e)
+
+        system = f''' Your task is to come up with questions someone might as about the content of a Neo4j database. 
             Try to make the questions as different as possible. The questions should be separated by a new line and each 
             line should only contain one question. To do this, you need to understand the schema of the database. 
             Therefore it's very important that you read the schema carefully. You can find the schema below. Schema: 
-    {database.schema}
-            """
+    {schema}
+            '''
 
         return system
 
@@ -71,3 +100,8 @@ class PromptGenerator:
             return f"Data: {data}\nTypes: {labels}"
         else:
             return f"Data: {data}"
+
+    @staticmethod
+    def generate_prompt(data) -> str:
+        return f""" Here is the data:
+    {data} """

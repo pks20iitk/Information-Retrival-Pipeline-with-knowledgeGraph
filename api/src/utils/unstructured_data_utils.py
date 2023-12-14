@@ -1,3 +1,5 @@
+import json.decoder
+from json import JSONDecodeError
 from api.src.components.base_components import DataConverter
 from typing import List, Union
 import json
@@ -13,18 +15,22 @@ class NodesTextConverter(DataConverter):
             if len(node_list) < 2:
                 continue
 
-            name = node_list[0].strip().replace('"', "")
-            label = node_list[1].strip().replace('"', "")
-            properties = re.search(r"\{.*}", node)
-            if properties is None:
-                properties = "{}"
+            name = re.sub(r'[^a-zA-Z0-9_]', '', node_list[0])
+            label = re.sub(r'[^a-zA-Z0-9_]', '', node_list[1])
+
+            properties_start = node.find("{")
+            properties_end = node.find("}")
+            if properties_start != -1 and properties_end != -1:
+                properties = node[properties_start:properties_end+1]
             else:
-                properties = properties.group(0)
-            properties = properties.replace("True", "true")
+                properties = "{}"
+            properties = json.loads(properties.replace("True", "true"), ensure_ascii=False)
+
             try:
                 properties = json.loads(properties)
-            except:
+            except JSONDecodeError:
                 properties = {}
+
             result.append({"name": name, "label": label, "properties": properties})
         return result
 
@@ -34,21 +40,21 @@ class RelationshipsTextConverter(DataConverter):
         result = []
         for relation in relationships_text:
             relation_list = relation.split(",")
-            if len(relation) < 3:
+            if len(relation_list) < 3:
                 continue
             start = relation_list[0].strip().replace('"', "")
             end = relation_list[1].strip().replace('"', "")
-            relation_type = relation_list[1].strip().replace('"', "")
+            relation_type = relation_list[2].strip().replace('"', "")
 
-            properties = re.search(r'\{.*}', relation)
+            properties = re.search(r'\{.*?\}', relation)
             if properties is None:
                 properties = "{}"
             else:
                 properties = properties.group(0)
-            properties = properties.replace("True", "true")
+            properties = properties.replace("True", "true").replace("False", "false")
             try:
                 properties = json.loads(properties)
-            except:
+            except json.JSONDecodeError:
                 properties = {}
             result.append({"start": start, "end": end, "type": relation_type, "properties": properties})
         return result

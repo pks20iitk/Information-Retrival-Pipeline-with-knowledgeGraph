@@ -98,31 +98,3 @@ class Text2Cypher(BaseComponent):
         return {"output": output, "generated_cypher": generated_cypher}
 
 
-async def main():
-    # Create instances of required classes
-    llm = OpenAIChat(
-        openai_api_key="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") # You may need to replace this with the actual class instance
-    cypher_generator = CypherGenerator(llm)
-    database = Neo4jDatabase()  # You may need to replace this with the actual class instance
-
-    # Create an instance of Text2Cypher
-    text2cypher_component = Text2Cypher(cypher_generator, database, runner=None, use_schema=True)
-
-    # Example input: User question
-    user_question = "what is closing date of loan agreement?"
-
-    # Example history (previous conversation)
-    history = [
-        {"role": "user", "content": "How to find nodes with a specific property value?"}
-        # Add more conversation history if needed
-    ]
-
-    # Run the Text2Cypher component
-    result = text2cypher_component.run(user_question, history)
-
-    # Print the generated Cypher and the output
-    print("Generated Cypher:", result["generated_cypher"])
-    print("Output:", result["output"])
-
-# Run the main function
-asyncio.run(main())

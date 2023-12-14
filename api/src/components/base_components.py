@@ -52,7 +52,7 @@ class AsynchronousRunner(Runner):
 
 
 class BaseComponent(ABC):
-    def __init__(self, runner: Runner):
+    def __init__(self, runner):
         self.runner = runner
 
     def execute(self, input_data: Union[str, List[float]]) -> str:

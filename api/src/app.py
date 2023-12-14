@@ -1,77 +1,154 @@
+from http.client import HTTPException
+
+from jsonschema import validate
+from jsonschema.exceptions import ValidationError
+from typing import Dict, Union, Optional
+import logging
+import traceback
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-# from api.src.components.company_report import CompanyReport
+from api.src.components.company_report import CompanyReport
 from api.src.components.ConcreteDataDisambiguation import DataDisambiguation
 from api.src.components.question_generator import QuestionProposalGenerator
-# from api.src.components.summarize_cypher_result import SummarizeCypherResult
-# from api.src.components.text2cypher import Text2Cypher
+from api.src.components.summarize_cypher_result import SummarizeCypherResult
+from api.src.components.text2cypher import Text2Cypher, CypherGenerator
 from api.src.components.unstructured_data_extractor import DataExtractor, DataExtractorWithSchema
 from api.src.driver.Neo4j import Neo4jDatabase
+from api.src.llm.basellm import BaseLLM
 from api.src.llm.openai import OpenAIChat
+from api.src.utils.unstructured_data_utils import NodesTextConverter, RelationshipsTextConverter
+from pydantic import BaseModel
+from api.src.components.message_generator import SystemMessageGenerator
+from api.src.fewshot_examples import get_fewshot_examples
+
+database = Neo4jDatabase()
+llm = OpenAIChat(openai_api_key='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')
+openai_api_key = None
+
+
 
 app = Flask(__name__)
 CORS(app)
 
+
+class Payload(BaseModel):
+    question: str
+    api_key: Optional[str]
+    model_name: Optional[str]
+
+
+class ImportPayload(BaseModel):
+    input: str
+    neo4j_schema: Optional[str]
+    api_key: Optional[str]
+
+
+class QuestionProposalPayload(BaseModel):
+    api_key: Optional[str]
+
+
+# Maximum number of records used in the context
 HARD_LIMIT_CONTEXT_RECORDS = 10
 
-neo4j_connection = Neo4jDatabase(
-    host=os.environ.get("NEO4J_URL", "neo4j+s://demo.neo4jlabs.com"),
-    user=os.environ.get("NEO4J_USER", "companies"),
-    password=os.environ.get("NEO4J_PASS", "companies"),
-    database=os.environ.get("NEO4J_DATABASE", "companies"),
-)
-
-openai_api_key = os.environ.get("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", None)
 
 @app.route("/questionProposalsForCurrentDb", methods=["POST"])
 def question_proposals_for_current_db():
-    payload = request.json
-    if not openai_api_key and not payload.get("api_key"):
-        return jsonify({"error": "Please set OPENAI_API_KEY environment variable or send it as api_key in the request body"}), 422
+    data = request.json
 
-    api_key = openai_api_key if openai_api_key else payload.get("api_key")
-    questionProposalGenerator = QuestionProposalGenerator(
-        database=neo4j_connection,
-        llm=OpenAIChat(
-            openai_api_key=api_key,
-            model_name="gpt-3.5-turbo-0613",
-            max_tokens=512,
-            temperature=0.8,
-        ),
-    )
+    if not openai_api_key and not data.get('api_key'):
+        return jsonify(
+            {"error": "Please set OPENAI_API_KEY environment variable or send it as api_key in the request body"}), 422
 
-    return jsonify(questionProposalGenerator.run())
+    api_key = openai_api_key if openai_api_key else data.get('api_key')
 
-@app.route("/hasapikey", methods=["GET"])
-def has_api_key():
-    return jsonify({"output": openai_api_key is not None})
+    # Assuming QuestionProposalGenerator and OpenAIChat classes are defined elsewhere
+    question_proposal_generator = QuestionProposalGenerator(
+        database=database,
+        llm=llm,
+        system_message_generator=SystemMessageGenerator.get_system_message_for_questions(database))
 
-@app.route("/text2text", methods=["WEBSOCKET"])
-def websocket_endpoint():
-    # WebSocket functionality goes here...
-    pass
+    result = question_proposal_generator.run()
+    return jsonify(result)
 
-@app.route("/data2cypher", methods=["POST"])
-def data_to_cypher():
-    payload = request.json
-    if not openai_api_key and not payload.get("api_key"):
-        return jsonify({"error": "Please set OPENAI_API_KEY environment variable or send it as api_key in the request body"}), 422
 
-    api_key = openai_api_key if openai_api_key else payload.get("api_key")
+@app.route("/text2text", methods=["POST"])
+def text2text():
+    try:
+        data = request.json
+        if not openai_api_key and not data.get("api_key"):
+            return jsonify({"error": "Please set OPENAI_API_KEY or provide api_key"}), 422
+
+        api_key = openai_api_key if openai_api_key else data.get("api_key")
+
+        default_llm = llm
+
+        summarize_results = SummarizeCypherResult(
+            llm=default_llm,
+            exclude_embeddings=False,
+            System=SystemMessageGenerator.system()
+        )
+
+        text2cypher = Text2Cypher(database=database, cypher_generator=CypherGenerator(llm=llm),
+                                  cypher_examples=get_fewshot_examples(api_key), runner=None)
+
+        if "type" not in data:
+            return jsonify({"error": "Missing type"}), 400
+
+        if data["type"] == "question":
+            question = data["question"]
+            chatHistory = [{"role": "user", "content": question}]
+            # chatHistory = data['chat_history']
+            results = None
+
+            try:
+                results = text2cypher.run(question, chatHistory)
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+            if results is None:
+                return jsonify({"error": "Could not generate Cypher statement"}), 500
+
+            output = summarize_results.run(
+                question, results["output"][:HARD_LIMIT_CONTEXT_RECORDS]
+            )
+
+            chatHistory.append({"role": "system", "content": output})
+
+            return jsonify(
+                {
+                    "type": "end",
+                    "output": output,
+                    "generated_cypher": results["generated_cypher"],
+                }
+            )
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.post("/data2cypher")
+def root(payload: ImportPayload):
+    """
+    Takes an input and created a Cypher query
+    """
+    if not openai_api_key and not payload.api_key:
+        raise HTTPException()
+    api_key = openai_api_key if openai_api_key else payload.api_key
 
     try:
         result = ""
+
         llm = OpenAIChat(
             openai_api_key=api_key, model_name="gpt-3.5-turbo-16k", max_tokens=4000
         )
 
-        if not payload.get("neo4j_schema"):
+        if not payload.neo4j_schema:
             extractor = DataExtractor(llm=llm)
-            result = extractor.run(data=payload.get("input"))
+            result = extractor.run(data=payload.input)
         else:
             extractor = DataExtractorWithSchema(llm=llm)
-            result = extractor.run(schema=payload.get("neo4j_schema"), data=payload.get("input"))
+            result = extractor.run(schema=payload.neo4j_schema, data=payload.input)
 
         print("Extracted result: " + str(result))
 
@@ -80,46 +157,12 @@ def data_to_cypher():
 
         print("Disambiguation result " + str(disambiguation_result))
 
-        return jsonify({"data": disambiguation_result})
+        return {"data": disambiguation_result}
 
     except Exception as e:
         print(e)
-        return jsonify({"error": f"Error: {e}"}), 500
+        return f"Error: {e}"
 
-@app.route("/companyReport", methods=["POST"])
-def company_report():
-    payload = request.json
-    if not openai_api_key and not payload.get("api_key"):
-        return jsonify({"error": "Please set OPENAI_API_KEY environment variable or send it as api_key in the request body"}), 422
-
-    api_key = openai_api_key if openai_api_key else payload.get("api_key")
-
-    llm = OpenAIChat(
-        openai_api_key=api_key,
-        model_name="gpt-3.5-turbo-16k-0613",
-        max_tokens=512,
-    )
-    print("Running company report for " + payload.get("company"))
-    company_report = CompanyReport(neo4j_connection, payload.get("company"), llm)
-    result = company_report.run()
-
-    return jsonify({"output": result})
-
-@app.route("/companyReport/list", methods=["POST"])
-def company_report_list():
-    company_data = neo4j_connection.query(
-        "MATCH (n:Organization) WITH n WHERE rand() < 0.01 return n.name LIMIT 5",
-    )
-
-    return jsonify({"output": [x["n.name"] for x in company_data]})
-
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({"status": "ok"})
-
-@app.route("/ready", methods=["GET"])
-def readiness_check():
-    return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
-    app.run(port=int(os.environ.get("PORT", 7860)), host="0.0.0.0")
+    app.run(debug=True)

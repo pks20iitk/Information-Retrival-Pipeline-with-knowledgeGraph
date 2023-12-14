@@ -6,9 +6,9 @@ from api.src.driver.Schema_builder import SchemaBuilder, SchemaTextFormatter, Qu
 class Neo4jDatabase:
     def __init__(
             self,
-            host: str = "neo4j+s://d34db895.databases.neo4j.io",
+            host: str = "neo4j+s://31ca29c5.databases.neo4j.io",
             user: str = "neo4j",
-            password: str = "cq3bB8rRwzbCwAJHUQau9qkkHwkIWz6YMpYd6qxFIOs",
+            password: str = "UlzXuGSIoDZOW_lYqMnB-CmtXx1uMoz5d7TlCdPaSuY",
             database: str = "neo4j",
             read_only: bool = True,
     ) -> None:

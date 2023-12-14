@@ -6,6 +6,7 @@ import json
 import re
 from itertools import groupby
 from api.src.utils.unstructured_data_utils import RelationshipsTextConverter, NodesTextConverter
+from api.src.llm.basellm import BaseLLM
 from api.src.llm.openai import OpenAIChat
 
 regex = "Nodes:\s+(.*?)\s?\s?Relationships:\s+(.*)"
@@ -47,9 +48,9 @@ class ConcreteDataDisambiguationPromptProvider(DataDisambiguationPromptProvider)
 
 
 class DataDisambiguation(BaseComponent):
-    def __init__(self, llm=None, system_message_provider=None, prompt_provider=None, runner=None) -> None:
+    def __init__(self, llm: BaseLLM, system_message_provider=None, prompt_provider=None, runner=None) -> None:
         super().__init__(runner)
-        self.llm = OpenAIChat(openai_api_key="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")
+        self.llm = llm
         self.system_message_provider = system_message_provider
         self.prompt_provider = prompt_provider
 
@@ -135,8 +136,7 @@ if __name__ == "__main__":
         ],
     }
 
-    llm = OpenAIChat(
-        openai_api_key="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")  # Replace with your llm instance
+    llm = OpenAIChat(openai_api_key='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')# Replace with your llm instance
     system_message_provider = ConcreteDataDisambiguationSystemMessageProvider()
     prompt_provider = ConcreteDataDisambiguationPromptProvider()
     runner = None  # Replace with your runner instance

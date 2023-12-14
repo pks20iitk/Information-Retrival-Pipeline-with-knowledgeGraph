@@ -16,7 +16,7 @@ class BaseLLM(ABC):
     """LLM wrapper should take in a prompt and return a string."""
 
     @abstractmethod
-    def generate(self, messages: None) -> str:
+    def generate(self, messages: List[str]) -> str:
         """Generates output based on the given prompt messages."""
         pass
 
@@ -26,16 +26,22 @@ class BaseLLM(ABC):
         pass
 
     @abstractmethod
-    async def num_tokens_from_string(self, string: str) -> int:
+    def num_tokens_from_string(self, string: str) -> int:
         """Given a string, returns the number of tokens the string consists of."""
         pass
 
     @abstractmethod
-    async def max_allowed_token_length(self) -> int:
+    def max_allowed_token_length(self) -> int:
         """Returns the maximum number of tokens the LLM can handle.
         :rtype: object
         """
         pass
 
     def generateStreaming(self, messages, onTokenCallback):
+        pass
+
+    def get_num_tokens_from_string(self, current_chunk):
+        pass
+
+    def get_max_allowed_token_length(self):
         pass

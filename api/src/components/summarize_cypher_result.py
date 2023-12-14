@@ -4,13 +4,6 @@ from api.src.components.base_components import BaseComponent
 from api.src.llm.basellm import BaseLLM
 from api.src.llm.openai import OpenAIChat
 
-system = f""" You are an assistant that helps to generate text to form nice and human understandable answers based. 
-The latest prompt contains the information, and you need to generate a human readable response based on the given 
-information. Make the answer sound as a response to the question. Do not mention that you based the result on the 
-given information. Do not add any additional information that is not explicitly provided in the latest prompt. I 
-repeat, do not add any information that is not explicitly given. Make the answer as concise as possible and do not 
-use more than 50 words."""
-
 
 def generate_user_prompt(question: str, results: List[Dict[str, str]], exclude_embeddings: bool) -> str:
     return f"""
@@ -43,12 +36,13 @@ class SummarizeCypherResult(BaseComponent):
     exclude_embeddings: bool
     system: str
 
-    def __init__(self, System: str, llm: BaseLLM, exclude_embeddings: bool = True) -> None:
+    def __init__(self, System: str, llm: BaseLLM, exclude_embeddings: bool = True, runner=None) -> None:
         """
 
         @rtype: object
         @type llm: object
         """
+        super().__init__(runner)
         self.llm = llm
         self.exclude_embeddings = exclude_embeddings
         self.System = System
@@ -87,42 +81,3 @@ class SummarizeCypherResult(BaseComponent):
     @classmethod
     def remove_large_lists(cls, el):
         pass
-
-
-async def main():
-    # Example data
-    question = "What is the capital of France?"
-    results = [
-        {"city": "Paris", "population": 2200000},
-        {"city": "Marseille", "population": 870000},
-        {"city": "Lyon", "population": 515695},
-    ]
-    llm_instance = OpenAIChat(
-        openai_api_key="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")
-    # Create instances of the components
-    # llm_instance = OpenAIChat(
-    #     openai_api_key="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")  # Replace with the actual class for
-    # # your LLM
-    System = f""" You are an assistant that helps to generate text to form nice and human understandable answers based. 
-    The latest prompt contains the information, and you need to generate a human readable response based on the given 
-    information. Make the answer sound as a response to the question. Do not mention that you based the result on the 
-    given information. Do not add any additional information that is not explicitly provided in the latest prompt. I 
-    repeat, do not add any information that is not explicitly given. Make the answer as concise as possible and do not 
-    use more than 50 words."""
-
-    summarize_component = SummarizeCypherResult(System, llm_instance)
-
-    # Run the component
-    result_sync = summarize_component.run(question, results)
-    result_async = summarize_component.run_async(question, results)
-
-    # Print or handle the results as needed
-    print("Synchronous Result:", result_sync)
-    print("Asynchronous Result:", result_async)
-
-
-# Run the main function
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
