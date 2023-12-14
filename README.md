@@ -1,5 +1,5 @@
-# legalgraph
-This repository is created to extract information from legal document using Knowledge graph, vectorDB, LLM GPT-3, GPT-3.5, GPT-4 and LangChain 
+# Extraction with KnowledgeGraph
+This repository is created to extract information  using Knowledge graph and using LLM GPT-3, GPT-3.5, GPT-4 and LangChain 
 
 Repository Structure
 Our repository is designed with an efficient and logical structure for ease of navigation:
