@@ -1,4 +1,4 @@
-# Extraction with KnowledgeGraph
+# Extraction with KnowledgeGraph 
 This repository is created to extract information  using Knowledge graph and using LLM GPT-3, GPT-3.5, GPT-4 and LangChain 
 
 Repository Structure
