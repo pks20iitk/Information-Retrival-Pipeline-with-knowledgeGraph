@@ -1,5 +1,5 @@
-# legalgraph
-This repository is created to extract information from legal document using Knowledge graph, vectorDB, LLM GPT-3, GPT-3.5, GPT-4 and LangChain 
+# Extraction with KnowledgeGraph 
+This repository is created to extract information  using Knowledge graph and using LLM GPT-3, GPT-3.5, GPT-4 and LangChain 
 
 Repository Structure
 Our repository is designed with an efficient and logical structure for ease of navigation:
@@ -16,10 +16,10 @@ Create an env file. You can use the env.example file as a template.
 
 backend: localhost:7860/5000
 
-Please note that you'll need Docker installed on your machine to build and run these images. If you haven't already, you can download Docker from here.
+
 
 Demo database
-There is a demo databasing running on demo.neo4jlabs.com. This database is a set of compnaies, thier subsidaiers, people related to the companies and articles mentioned the compnaies. The database is a subset of the Diffbot knowledge graph. You can access it with the following credentaiils:
+There is a demo databasing running on demo.neo4jlabs.com. This database Contains information about movies, actors,actress, directors and other related to movies.
 
 Bring your own database
 To run the project on your own database, follow these two steps:
